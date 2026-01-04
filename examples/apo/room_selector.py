@@ -2,9 +2,11 @@
 
 import asyncio
 import json
+import os
 import traceback
 from typing import List, Optional, Tuple, TypedDict, cast
 
+from dotenv import load_dotenv
 from openai import OpenAI
 from openai.types.chat import (
     ChatCompletionAssistantMessageParam,
@@ -23,6 +25,9 @@ from agentlightning.runner import LitAgentRunner
 from agentlightning.store import InMemoryLightningStore
 from agentlightning.tracer.agentops import AgentOpsTracer
 from agentlightning.types import Dataset, PromptTemplate
+
+# 加载 .env 文件
+load_dotenv()
 
 console = Console()
 
@@ -100,7 +105,7 @@ def room_selection_grader(client: OpenAI, final_message: Optional[str], expected
         f"Bear in mind that the score can be partially correct (between 0 and 1)."
     )
     judge = client.chat.completions.parse(
-        model="gpt-4.1-mini",
+        model="qwen-plus",  # 使用 Qwen 模型
         messages=[
             {"role": "user", "content": judge_prompt},
         ],
@@ -149,8 +154,12 @@ def room_selector(task: RoomSelectionTask, prompt_template: PromptTemplate) -> f
     It also should work with a very small model like gpt-4.1-nano.
     """
 
-    client = OpenAI()
-    model = "gpt-4.1-nano"
+    # 使用 Qwen API（兼容 OpenAI 格式）
+    client = OpenAI(
+        api_key=os.getenv("DASHSCOPE_API_KEY"),  # 或者使用 QWEN_API_KEY，根据你的 .env 文件
+        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+    )
+    model = "qwen-turbo"  # 使用 Qwen 的小模型
 
     user_message = prompt_template.format(**task["task_input"])
 

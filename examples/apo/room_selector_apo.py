@@ -3,8 +3,10 @@
 """This sample code demonstrates how to use an existing APO algorithm to tune the prompts."""
 
 import logging
+import os
 from typing import Tuple, cast
 
+from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from room_selector import RoomSelectionTask, load_room_tasks, prompt_template_baseline, room_selector
 
@@ -12,6 +14,9 @@ from agentlightning import Trainer, setup_logging
 from agentlightning.adapter import TraceToMessages
 from agentlightning.algorithm.apo import APO
 from agentlightning.types import Dataset
+
+# 加载 .env 文件
+load_dotenv()
 
 
 def load_train_val_dataset() -> Tuple[Dataset[RoomSelectionTask], Dataset[RoomSelectionTask]]:
@@ -36,10 +41,17 @@ def main() -> None:
     setup_logging()
     setup_apo_logger()
 
-    openai_client = AsyncOpenAI()
+    # 使用 Qwen API（兼容 OpenAI 格式）
+    openai_client = AsyncOpenAI(
+        api_key=os.getenv("DASHSCOPE_API_KEY"),  # 或者使用 QWEN_API_KEY，根据你的 .env 文件
+        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",  # Qwen 的兼容端点
+    )
 
     algo = APO[RoomSelectionTask](
         openai_client,
+        # 使用 Qwen 模型替代 GPT 模型
+        gradient_model="qwen-plus",  # 用于计算文本梯度（批评）
+        apply_edit_model="qwen-plus",  # 用于应用编辑
         val_batch_size=10,
         gradient_batch_size=4,
         beam_width=2,
